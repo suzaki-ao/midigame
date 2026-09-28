@@ -1,0 +1,3160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>MIDI音ゲー</title>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:#09090d;
+  color:#fff;
+  font-family:
+    Arial,
+    "Noto Sans JP",
+    sans-serif;
+  text-align:center;
+}
+
+h1{
+  margin:12px 0;
+  font-size:24px;
+}
+
+
+/* =========================
+   操作エリア
+========================= */
+
+.controls{
+  margin:8px;
+}
+
+button,
+select{
+  padding:9px 15px;
+  margin:4px;
+  border:0;
+  border-radius:7px;
+  background:#393a42;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#555;
+}
+
+button:disabled{
+  opacity:.4;
+  cursor:not-allowed;
+}
+
+
+/* =========================
+   スコア
+========================= */
+
+#scoreBoard{
+
+  width:500px;
+  max-width:95vw;
+
+  margin:8px auto;
+
+  padding:10px;
+
+  background:#19191f;
+
+  border:1px solid #444;
+
+  border-radius:8px;
+}
+
+.scoreRow{
+
+  display:flex;
+
+  justify-content:space-around;
+
+  font-size:15px;
+}
+
+.smallStats{
+
+  margin-top:7px;
+
+  color:#aaa;
+
+  font-size:13px;
+}
+
+
+/* =========================
+   ゲーム画面
+========================= */
+
+#game-container{
+
+  width:500px;
+  height:700px;
+
+  max-width:95vw;
+
+  margin:auto;
+
+  position:relative;
+
+  overflow:hidden;
+
+  background:#020204;
+
+  border:2px solid #555;
+}
+
+canvas{
+
+  width:100%;
+  height:100%;
+
+  display:block;
+}
+
+
+/* =========================
+   判定表示
+========================= */
+
+#judgement{
+
+  position:absolute;
+
+  left:50%;
+  top:40%;
+
+  transform:
+    translate(-50%,-50%);
+
+  z-index:20;
+
+  font-size:44px;
+
+  font-weight:900;
+
+  opacity:0;
+
+  pointer-events:none;
+
+  white-space:nowrap;
+
+  text-shadow:
+    0 0 8px currentColor,
+    0 0 25px currentColor;
+}
+
+#judgement.show{
+
+  animation:
+    judgement .42s ease-out;
+}
+
+@keyframes judgement{
+
+  0%{
+    opacity:0;
+
+    transform:
+      translate(-50%,-50%)
+      scale(.5);
+  }
+
+  20%{
+    opacity:1;
+
+    transform:
+      translate(-50%,-50%)
+      scale(1.15);
+  }
+
+  65%{
+    opacity:1;
+
+    transform:
+      translate(-50%,-50%)
+      scale(1);
+  }
+
+  100%{
+    opacity:0;
+
+    transform:
+      translate(-50%,-50%)
+      scale(1.04);
+  }
+}
+
+
+/* =========================
+   コンボ表示
+========================= */
+
+#comboDisplay{
+
+  position:absolute;
+
+  left:50%;
+  top:47%;
+
+  transform:
+    translate(-50%,-50%);
+
+  z-index:19;
+
+  font-size:22px;
+
+  font-weight:bold;
+
+  opacity:0;
+
+  pointer-events:none;
+
+  white-space:nowrap;
+}
+
+#comboDisplay.show{
+
+  animation:
+    combo .3s ease-out;
+}
+
+@keyframes combo{
+
+  0%{
+    opacity:0;
+
+    transform:
+      translate(-50%,-50%)
+      scale(.8);
+  }
+
+  30%{
+    opacity:1;
+
+    transform:
+      translate(-50%,-50%)
+      scale(1.1);
+  }
+
+  100%{
+    opacity:1;
+
+    transform:
+      translate(-50%,-50%)
+      scale(1);
+  }
+}
+
+
+/* =========================
+   カウントダウン
+========================= */
+
+#countdown{
+
+  position:absolute;
+
+  left:50%;
+  top:35%;
+
+  transform:
+    translate(-50%,-50%);
+
+  z-index:30;
+
+  font-size:90px;
+
+  font-weight:900;
+
+  opacity:0;
+
+  pointer-events:none;
+}
+
+#countdown.show{
+
+  animation:
+    countdown .8s ease-out;
+}
+
+@keyframes countdown{
+
+  0%{
+    opacity:0;
+
+    transform:
+      translate(-50%,-50%)
+      scale(.3);
+  }
+
+  25%{
+    opacity:1;
+
+    transform:
+      translate(-50%,-50%)
+      scale(1.2);
+  }
+
+  70%{
+    opacity:1;
+
+    transform:
+      translate(-50%,-50%)
+      scale(1);
+  }
+
+  100%{
+    opacity:0;
+  }
+}
+
+
+/* =========================
+   FULL COMBO演出
+========================= */
+
+#fullComboEffect{
+
+  position:absolute;
+
+  inset:0;
+
+  z-index:50;
+
+  display:none;
+
+  align-items:center;
+
+  justify-content:center;
+
+  flex-direction:column;
+
+  pointer-events:none;
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255,230,0,.25),
+      rgba(0,0,0,.82) 68%
+    );
+}
+
+#fullComboEffect.show{
+
+  display:flex;
+
+  animation:
+    fcBackground 3.2s ease-out forwards;
+}
+
+.fcTitle{
+
+  font-size:56px;
+
+  font-weight:1000;
+
+  letter-spacing:3px;
+
+  color:#ffe600;
+
+  text-shadow:
+    0 0 8px #fff,
+    0 0 20px #ffe600,
+    0 0 50px #ff9d00;
+
+  animation:
+    fcTitle 3.2s ease-out forwards;
+}
+
+.fcSub{
+
+  margin-top:10px;
+
+  font-size:24px;
+
+  font-weight:bold;
+
+  color:#fff;
+
+  text-shadow:
+    0 0 10px #fff,
+    0 0 25px #ffe600;
+
+  animation:
+    fcSub 3.2s ease-out forwards;
+}
+
+@keyframes fcBackground{
+
+  0%{
+    opacity:0;
+  }
+
+  12%{
+    opacity:1;
+  }
+
+  70%{
+    opacity:1;
+  }
+
+  100%{
+    opacity:0;
+  }
+}
+
+@keyframes fcTitle{
+
+  0%{
+    opacity:0;
+
+    transform:
+      scale(.25)
+      rotate(-5deg);
+  }
+
+  18%{
+    opacity:1;
+
+    transform:
+      scale(1.18)
+      rotate(2deg);
+  }
+
+  30%{
+    transform:
+      scale(.95)
+      rotate(0);
+  }
+
+  45%{
+    transform:
+      scale(1);
+  }
+
+  100%{
+    opacity:0;
+
+    transform:
+      scale(1.12);
+  }
+}
+
+@keyframes fcSub{
+
+  0%{
+    opacity:0;
+
+    transform:
+      translateY(25px);
+  }
+
+  25%{
+    opacity:0;
+  }
+
+  40%{
+    opacity:1;
+
+    transform:
+      translateY(0);
+  }
+
+  75%{
+    opacity:1;
+  }
+
+  100%{
+    opacity:0;
+  }
+}
+
+
+/* =========================
+   10キー
+========================= */
+
+#laneButtons{
+
+  width:500px;
+
+  max-width:95vw;
+
+  margin:6px auto;
+
+  display:flex;
+
+  gap:2px;
+}
+
+.laneButton{
+
+  flex:1;
+
+  height:55px;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  background:#202024;
+
+  border:1px solid #555;
+
+  color:#bbb;
+
+  font-size:17px;
+
+  font-weight:bold;
+
+  user-select:none;
+
+  transition:
+    background .05s,
+    transform .05s,
+    box-shadow .05s;
+}
+
+.laneButton.active{
+
+  background:#00cfff;
+
+  color:#fff;
+
+  transform:scale(.93);
+
+  box-shadow:
+    0 0 12px #00d9ff,
+    0 0 30px #00d9ff;
+}
+
+.laneButton.perfect{
+
+  background:#fff;
+
+  color:#111;
+
+  box-shadow:
+    0 0 15px #fff,
+    0 0 40px #ffe600;
+}
+
+
+/* =========================
+   結果
+========================= */
+
+#result{
+
+  min-height:30px;
+
+  margin:8px;
+
+  font-size:20px;
+
+  font-weight:bold;
+}
+
+#info{
+
+  color:#777;
+
+  font-size:13px;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<h1>🎹 MIDI → 10レーン音ゲー</h1>
+
+
+<div class="controls">
+
+  <input
+    type="file"
+    id="midiFile"
+    accept=".mid,.midi">
+
+  <br>
+
+  <label>
+
+    難易度：
+
+    <select id="difficulty">
+
+      <option value="low">
+        低
+      </option>
+
+      <option value="mid" selected>
+        中
+      </option>
+
+      <option value="high">
+        高
+      </option>
+
+    </select>
+
+  </label>
+
+  <br>
+
+  <button
+    id="startBtn"
+    disabled>
+
+    ▶ ゲーム開始
+
+  </button>
+
+
+  <button
+    id="autoBtn">
+
+    AUTO PLAY：OFF
+
+  </button>
+
+</div>
+
+
+<div id="scoreBoard">
+
+  <div class="scoreRow">
+
+    <span>
+      SCORE
+      <b id="score">0</b>
+    </span>
+
+    <span>
+      COMBO
+      <b id="combo">0</b>
+    </span>
+
+    <span>
+      MAX
+      <b id="maxCombo">0</b>
+    </span>
+
+  </div>
+
+
+  <div class="smallStats">
+
+    PERFECT
+    <b id="perfect">0</b>
+
+   　
+
+    GREAT
+    <b id="great">0</b>
+
+   　
+
+    GOOD
+    <b id="good">0</b>
+
+   　
+
+    MISS
+    <b id="miss">0</b>
+
+  </div>
+
+</div>
+
+
+<div id="game-container">
+
+  <canvas
+    id="gameCanvas"
+    width="500"
+    height="700">
+  </canvas>
+
+
+  <div id="judgement"></div>
+
+  <div id="comboDisplay"></div>
+
+  <div id="countdown"></div>
+
+
+  <!-- FULL COMBO演出 -->
+
+  <div id="fullComboEffect">
+
+    <div class="fcTitle">
+      FULL COMBO
+    </div>
+
+    <div class="fcSub">
+      NO MISS
+    </div>
+
+  </div>
+
+</div>
+
+
+<div id="laneButtons">
+
+  <div
+    class="laneButton"
+    data-lane="0">
+    1
+  </div>
+
+  <div
+    class="laneButton"
+    data-lane="1">
+    2
+  </div>
+
+  <div
+    class="laneButton"
+    data-lane="2">
+    3
+  </div>
+
+  <div
+    class="laneButton"
+    data-lane="3">
+    4
+  </div>
+
+  <div
+    class="laneButton"
+    data-lane="4">
+    5
+  </div>
+
+  <div
+    class="laneButton"
+    data-lane="5">
+    6
+  </div>
+
+  <div
+    class="laneButton"
+    data-lane="6">
+    7
+  </div>
+
+  <div
+    class="laneButton"
+    data-lane="7">
+    8
+  </div>
+
+  <div
+    class="laneButton"
+    data-lane="8">
+    9
+  </div>
+
+  <div
+    class="laneButton"
+    data-lane="9">
+    0
+  </div>
+
+</div>
+
+
+<div id="info">
+
+  1～0キー / 下のキーをクリック
+
+</div>
+
+
+<div id="result"></div>
+
+
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.min.js">
+</script>
+
+<script
+  src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.min.js">
+</script>
+
+
+<script>
+
+/* =========================================================
+   基本設定
+========================================================= */
+
+const canvas =
+  document.getElementById(
+    "gameCanvas"
+  );
+
+const ctx =
+  canvas.getContext("2d");
+
+
+const LANES = 10;
+
+
+/*
+  ★ ノーツ開始位置
+
+  画面上端より80px上。
+
+  これによってゲーム開始時に
+  ノーツが画面下に存在する問題を防止。
+*/
+
+const SPAWN_Y = -80;
+
+
+const hitLineY =
+  canvas.height - 100;
+
+
+/*
+  ★ 最初のノーツが
+    判定ラインに来るまで3秒
+*/
+
+const APPROACH_TIME = 3.0;
+
+
+/*
+  ノーツ移動距離
+*/
+
+const travelDistance =
+  hitLineY - SPAWN_Y;
+
+
+/*
+  秒あたりの速度
+*/
+
+const noteSpeed =
+  travelDistance /
+  APPROACH_TIME;
+
+
+const NOTE_HEIGHT = 30;
+
+
+/* 判定幅 */
+
+const PERFECT_WINDOW = 0.075;
+
+const GREAT_WINDOW = 0.15;
+
+const GOOD_WINDOW = 0.24;
+
+
+/* =========================================================
+   状態
+========================================================= */
+
+let midiData = null;
+
+let notes = [];
+
+let effects = [];
+
+let playing = false;
+
+let countingDown = false;
+
+let autoPlay = false;
+
+let gameClockStart = 0;
+
+let songEndTime = 0;
+
+
+/* =========================================================
+   難易度
+========================================================= */
+
+const difficultySettings = {
+
+  low:{
+    density:0.45,
+    minInterval:0.18
+  },
+
+  mid:{
+    density:0.70,
+    minInterval:0.08
+  },
+
+  high:{
+    density:1.0,
+    minInterval:0
+  }
+
+};
+
+
+/* =========================================================
+   スコア
+========================================================= */
+
+let score = 0;
+
+let combo = 0;
+
+let maxCombo = 0;
+
+let perfectCount = 0;
+
+let greatCount = 0;
+
+let goodCount = 0;
+
+let missCount = 0;
+
+
+/* =========================================================
+   ピアノ音源
+========================================================= */
+
+const piano =
+new Tone.Sampler({
+
+  urls:{
+
+    "A0":"A0.mp3",
+
+    "C1":"C1.mp3",
+    "D#1":"Ds1.mp3",
+    "F#1":"Fs1.mp3",
+    "A1":"A1.mp3",
+
+    "C2":"C2.mp3",
+    "D#2":"Ds2.mp3",
+    "F#2":"Fs2.mp3",
+    "A2":"A2.mp3",
+
+    "C3":"C3.mp3",
+    "D#3":"Ds3.mp3",
+    "F#3":"Fs3.mp3",
+    "A3":"A3.mp3",
+
+    "C4":"C4.mp3",
+    "D#4":"Ds4.mp3",
+    "F#4":"Fs4.mp3",
+    "A4":"A4.mp3",
+
+    "C5":"C5.mp3",
+    "D#5":"Ds5.mp3",
+    "F#5":"Fs5.mp3",
+    "A5":"A5.mp3",
+
+    "C6":"C6.mp3",
+    "D#6":"Ds6.mp3",
+    "F#6":"Fs6.mp3",
+    "A6":"A6.mp3",
+
+    "C7":"C7.mp3",
+    "D#7":"Ds7.mp3",
+    "F#7":"Fs7.mp3",
+    "A7":"A7.mp3",
+
+    "C8":"C8.mp3"
+
+  },
+
+  release:1.8,
+
+  baseUrl:
+    "https://tonejs.github.io/audio/salamander/"
+
+}).toDestination();
+
+
+/* =========================================================
+   MIDI読み込み
+========================================================= */
+
+document
+.getElementById("midiFile")
+.addEventListener(
+  "change",
+  async function(e){
+
+    const file =
+      e.target.files[0];
+
+    if(!file)
+      return;
+
+
+    try{
+
+      const buffer =
+        await file.arrayBuffer();
+
+
+      midiData =
+        new Midi(buffer);
+
+
+      const rawNotes = [];
+
+
+      /*
+        ★ 全トラックから取得
+      */
+
+      midiData.tracks.forEach(
+        track=>{
+
+          track.notes.forEach(
+            n=>{
+
+              rawNotes.push({
+
+                midi:n.midi,
+
+                time:n.time,
+
+                duration:n.duration,
+
+                velocity:
+                  n.velocity ?? .8
+
+              });
+
+            }
+          );
+
+        }
+      );
+
+
+      rawNotes.sort(
+        (a,b)=>
+          a.time-b.time
+      );
+
+
+      if(rawNotes.length===0){
+
+        document
+        .getElementById("startBtn")
+        .disabled=true;
+
+        return;
+
+      }
+
+
+      /*
+        ★ 難易度
+      */
+
+      const difficulty =
+        document
+        .getElementById(
+          "difficulty"
+        )
+        .value;
+
+
+      const setting =
+        difficultySettings[
+          difficulty
+        ];
+
+
+      notes=[];
+
+
+      let lastAcceptedTime =
+        -Infinity;
+
+
+      /*
+        ★ ノーツ抽出
+      */
+
+      rawNotes.forEach(
+        n=>{
+
+          let accept=true;
+
+
+          if(
+            difficulty !== "high"
+          ){
+
+            const simultaneous =
+              rawNotes.some(
+                x=>
+                  x!==n &&
+                  Math.abs(
+                    x.time-n.time
+                  ) < 0.01
+              );
+
+
+            if(
+              !simultaneous &&
+              n.time-lastAcceptedTime
+              < setting.minInterval
+            ){
+
+              accept=false;
+
+            }
+
+
+            if(
+              !simultaneous &&
+              Math.random()
+              >setting.density
+            ){
+
+              accept=false;
+
+            }
+
+          }
+
+
+          if(!accept)
+            return;
+
+
+          lastAcceptedTime =
+            n.time;
+
+
+          notes.push({
+
+            midi:n.midi,
+
+            lane:
+              (
+                n.midi % LANES
+                + LANES
+              ) % LANES,
+
+            midiTime:n.time,
+
+            duration:n.duration,
+
+            velocity:n.velocity,
+
+            judged:false,
+
+            y:SPAWN_Y
+
+          });
+
+        }
+      );
+
+
+      /*
+        ★ MIDI最初の時間
+      */
+
+      const firstMidiTime =
+        notes[0].midiTime;
+
+
+      /*
+        ★★★重要★★★
+
+        ゲーム時間へ変換。
+
+        最初のノーツ = 3秒。
+
+        つまり、
+
+        0秒 → 画面外
+        1秒 → 上から落下
+        2秒 → 判定ライン直前
+        3秒 → 判定ライン
+
+      */
+
+      notes =
+        notes.map(
+          n=>({
+
+            ...n,
+
+            time:
+              APPROACH_TIME+
+              (
+                n.midiTime-
+                firstMidiTime
+              ),
+
+            y:SPAWN_Y,
+
+            judged:false
+
+          })
+        );
+
+
+      songEndTime=0;
+
+
+      notes.forEach(
+        n=>{
+
+          songEndTime =
+            Math.max(
+              songEndTime,
+              n.time+n.duration
+            );
+
+        }
+      );
+
+
+      document
+      .getElementById(
+        "startBtn"
+      )
+      .disabled=false;
+
+
+      document
+      .getElementById(
+        "result"
+      )
+      .textContent =
+        `${notes.length}ノーツ読み込み完了`;
+
+    }
+    catch(error){
+
+      console.error(error);
+
+      document
+      .getElementById(
+        "result"
+      )
+      .textContent =
+        "MIDI読み込みエラー";
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO PLAY
+========================================================= */
+
+document
+.getElementById("autoBtn")
+.addEventListener(
+  "click",
+  function(){
+
+    autoPlay =
+      !autoPlay;
+
+
+    this.textContent =
+      autoPlay
+      ? "AUTO PLAY：ON"
+      : "AUTO PLAY：OFF";
+
+
+    this.style.background =
+      autoPlay
+      ? "#008fba"
+      : "";
+
+
+    document
+    .getElementById(
+      "result"
+    )
+    .textContent =
+      autoPlay
+      ? "AUTO PLAY ON"
+      : "AUTO PLAY OFF";
+
+  }
+);
+
+
+/* =========================================================
+   START
+========================================================= */
+
+document
+.getElementById("startBtn")
+.addEventListener(
+  "click",
+  async function(){
+
+    if(
+      playing ||
+      countingDown ||
+      !midiData ||
+      notes.length===0
+    ){
+
+      return;
+
+    }
+
+
+    await Tone.start();
+
+
+    stopMusic();
+
+
+    resetGame();
+
+
+    /*
+      ★ 全ノーツを必ず画面外へ戻す
+    */
+
+    notes.forEach(
+      note=>{
+
+        note.judged=false;
+
+        note.y=SPAWN_Y;
+
+      }
+    );
+
+
+    effects=[];
+
+
+    /*
+      ★ 前回のFULL COMBO演出を消す
+    */
+
+    const fc =
+      document.getElementById(
+        "fullComboEffect"
+      );
+
+    fc.classList.remove(
+      "show"
+    );
+
+
+    playing=true;
+
+    countingDown=true;
+
+
+    this.disabled=true;
+
+
+    /*
+      カウントダウン
+    */
+
+    await runCountdown();
+
+
+    if(!playing){
+
+      this.disabled=false;
+
+      return;
+
+    }
+
+
+    /*
+      ★ GO!直後を0秒とする
+    */
+
+    gameClockStart =
+      performance.now();
+
+
+    countingDown=false;
+
+
+    /*
+      ★ 演奏開始
+    */
+
+    startMusic();
+
+
+    requestAnimationFrame(
+      gameLoop
+    );
+
+  }
+);
+
+
+/* =========================================================
+   COUNTDOWN
+========================================================= */
+
+function runCountdown(){
+
+  return new Promise(
+    resolve=>{
+
+      const element =
+        document.getElementById(
+          "countdown"
+        );
+
+
+      let number=3;
+
+
+      function step(){
+
+        if(!playing){
+
+          element.textContent="";
+
+          element.className="";
+
+          resolve();
+
+          return;
+
+        }
+
+
+        if(number>0){
+
+          element.textContent =
+            number;
+
+          element.className="";
+
+          void element.offsetWidth;
+
+          element.classList.add(
+            "show"
+          );
+
+
+          number--;
+
+
+          setTimeout(
+            step,
+            1000
+          );
+
+
+          return;
+
+        }
+
+
+        element.textContent =
+          "GO!";
+
+        element.className="";
+
+        void element.offsetWidth;
+
+        element.classList.add(
+          "show"
+        );
+
+
+        setTimeout(
+          ()=>{
+
+            element.textContent="";
+
+            element.className="";
+
+            resolve();
+
+          },
+          500
+        );
+
+      }
+
+
+      step();
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   MIDI演奏
+========================================================= */
+
+function startMusic(){
+
+  Tone.Transport.stop();
+
+  Tone.Transport.cancel();
+
+  Tone.Transport.position=0;
+
+
+  /*
+    ★ MIDIもゲームと同じ3秒遅延
+  */
+
+  const firstMidiTime =
+    notes[0].midiTime;
+
+
+  midiData.tracks.forEach(
+    track=>{
+
+      track.notes.forEach(
+        n=>{
+
+          const playTime =
+            APPROACH_TIME+
+            (
+              n.time-
+              firstMidiTime
+            );
+
+
+          Tone.Transport.schedule(
+            time=>{
+
+              piano.triggerAttackRelease(
+
+                Tone.Frequency(
+                  n.midi,
+                  "midi"
+                ),
+
+                Math.max(
+                  .03,
+                  n.duration
+                ),
+
+                time,
+
+                Math.max(
+                  .05,
+                  Math.min(
+                    1,
+                    n.velocity ?? .8
+                  )
+                )
+
+              );
+
+            },
+
+            Math.max(
+              0,
+              playTime
+            )
+
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+  Tone.Transport.start();
+
+}
+
+
+/* =========================================================
+   STOP MUSIC
+========================================================= */
+
+function stopMusic(){
+
+  try{
+
+    Tone.Transport.stop();
+
+    Tone.Transport.cancel();
+
+    Tone.Transport.position=0;
+
+  }
+  catch(e){
+
+    console.warn(e);
+
+  }
+
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+function resetGame(){
+
+  score=0;
+
+  combo=0;
+
+  maxCombo=0;
+
+  perfectCount=0;
+
+  greatCount=0;
+
+  goodCount=0;
+
+  missCount=0;
+
+  effects=[];
+
+  updateScore();
+
+}
+
+
+/* =========================================================
+   GAME LOOP
+========================================================= */
+
+function gameLoop(timestamp){
+
+  if(
+    !playing ||
+    countingDown
+  ){
+
+    return;
+
+  }
+
+
+  const elapsed =
+    (
+      timestamp-
+      gameClockStart
+    ) / 1000;
+
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  drawBackground();
+
+  drawHitLine();
+
+
+  /*
+    ★ ノーツ
+  */
+
+  for(
+    const note of notes
+  ){
+
+    if(note.judged)
+      continue;
+
+
+    const hitTime =
+      note.time;
+
+
+    /*
+      出現時刻
+    */
+
+    const spawnTime =
+      hitTime-
+      APPROACH_TIME;
+
+
+    /*
+      ★ まだ出現時間前なら
+         絶対に描画しない
+    */
+
+    if(
+      elapsed < spawnTime
+    ){
+
+      continue;
+
+    }
+
+
+    const progress =
+      (
+        elapsed-
+        spawnTime
+      ) /
+      APPROACH_TIME;
+
+
+    /*
+      -80px
+      ↓
+      判定ライン
+    */
+
+    note.y =
+      SPAWN_Y+
+      progress*
+      travelDistance;
+
+
+    drawNote(note);
+
+
+    /*
+      AUTO PLAY
+    */
+
+    if(
+      autoPlay &&
+      elapsed>=hitTime &&
+      !note.judged
+    ){
+
+      judgeNote(
+        note,
+        "PERFECT"
+      );
+
+    }
+
+
+    /*
+      MISS
+    */
+
+    if(
+      !autoPlay &&
+      elapsed >
+      hitTime+
+      GOOD_WINDOW &&
+      !note.judged
+    ){
+
+      judgeNote(
+        note,
+        "MISS"
+      );
+
+    }
+
+  }
+
+
+  updateAndDrawEffects();
+
+
+  /*
+    ★ 曲終了
+  */
+
+  if(
+    elapsed >
+    songEndTime+
+    1
+  ){
+
+    finishGame();
+
+    return;
+
+  }
+
+
+  requestAnimationFrame(
+    gameLoop
+  );
+
+}
+
+
+/* =========================================================
+   BACKGROUND
+========================================================= */
+
+function drawBackground(){
+
+  ctx.fillStyle="#020204";
+
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  /*
+    レーン
+  */
+
+  for(
+    let i=1;
+    i<LANES;
+    i++
+  ){
+
+    const x =
+      i*(
+        canvas.width/
+        LANES
+      );
+
+
+    ctx.strokeStyle =
+      "#29292e";
+
+    ctx.lineWidth=1;
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      x,
+      0
+    );
+
+    ctx.lineTo(
+      x,
+      canvas.height
+    );
+
+    ctx.stroke();
+
+  }
+
+
+  /*
+    判定ライン周辺
+  */
+
+  ctx.fillStyle =
+    "rgba(255,255,255,.025)";
+
+
+  ctx.fillRect(
+    0,
+    hitLineY-30,
+    canvas.width,
+    60
+  );
+
+}
+
+
+/* =========================================================
+   HIT LINE
+========================================================= */
+
+function drawHitLine(){
+
+  ctx.strokeStyle =
+    "#ff4050";
+
+  ctx.lineWidth=4;
+
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    0,
+    hitLineY
+  );
+
+  ctx.lineTo(
+    canvas.width,
+    hitLineY
+  );
+
+  ctx.stroke();
+
+}
+
+
+/* =========================================================
+   NOTE
+========================================================= */
+
+function drawNote(note){
+
+  const laneWidth =
+    canvas.width/
+    LANES;
+
+
+  const x =
+    note.lane*
+    laneWidth+
+    3;
+
+
+  const width =
+    laneWidth-
+    6;
+
+
+  ctx.shadowBlur=12;
+
+  ctx.shadowColor =
+    "#00d9ff";
+
+  ctx.fillStyle =
+    "#00cfff";
+
+
+  ctx.fillRect(
+    x,
+    note.y,
+    width,
+    NOTE_HEIGHT
+  );
+
+
+  ctx.shadowBlur=0;
+
+
+  /*
+    ハイライト
+  */
+
+  ctx.fillStyle =
+    "rgba(255,255,255,.8)";
+
+
+  ctx.fillRect(
+    x+2,
+    note.y+2,
+    width-4,
+    3
+  );
+
+
+  ctx.strokeStyle="#fff";
+
+  ctx.lineWidth=1;
+
+
+  ctx.strokeRect(
+    x,
+    note.y,
+    width,
+    NOTE_HEIGHT
+  );
+
+}
+
+
+/* =========================================================
+   PERFECT EFFECT
+========================================================= */
+
+function createPerfectEffect(note){
+
+  const laneWidth =
+    canvas.width/
+    LANES;
+
+
+  const x =
+    note.lane*
+    laneWidth+
+    laneWidth/2;
+
+
+  effects.push({
+
+    x:x,
+
+    y:hitLineY,
+
+    start:
+      performance.now(),
+
+    duration:420,
+
+    radius:
+      laneWidth*.7,
+
+    particles:
+      createParticles(
+        x,
+        hitLineY
+      )
+
+  });
+
+}
+
+
+/* =========================================================
+   PARTICLES
+========================================================= */
+
+function createParticles(
+  x,
+  y
+){
+
+  const particles=[];
+
+
+  for(
+    let i=0;
+    i<18;
+    i++
+  ){
+
+    const angle =
+      Math.random()*
+      Math.PI*2;
+
+
+    const speed =
+      35+
+      Math.random()*100;
+
+
+    particles.push({
+
+      x:x,
+
+      y:y,
+
+      vx:
+        Math.cos(angle)*
+        speed,
+
+      vy:
+        Math.sin(angle)*
+        speed,
+
+      size:
+        2+
+        Math.random()*4
+
+    });
+
+  }
+
+
+  return particles;
+
+}
+
+
+/* =========================================================
+   EFFECT
+========================================================= */
+
+function updateAndDrawEffects(){
+
+  const now =
+    performance.now();
+
+
+  for(
+    let i=effects.length-1;
+    i>=0;
+    i--
+  ){
+
+    const effect =
+      effects[i];
+
+
+    const age =
+      now-
+      effect.start;
+
+
+    const progress =
+      Math.min(
+        1,
+        age/
+        effect.duration
+      );
+
+
+    if(
+      progress>=1
+    ){
+
+      effects.splice(
+        i,
+        1
+      );
+
+      continue;
+
+    }
+
+
+    const alpha =
+      1-progress;
+
+
+    ctx.save();
+
+    ctx.globalAlpha=alpha;
+
+
+    /*
+      外側リング
+    */
+
+    ctx.strokeStyle =
+      "#ffe600";
+
+    ctx.lineWidth=4;
+
+    ctx.shadowBlur=20;
+
+    ctx.shadowColor =
+      "#ffe600";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+
+      effect.x,
+
+      effect.y,
+
+      effect.radius*
+      (
+        .25+
+        .75*
+        progress
+      ),
+
+      0,
+
+      Math.PI*2
+
+    );
+
+    ctx.stroke();
+
+
+    /*
+      内側リング
+    */
+
+    ctx.lineWidth=2;
+
+    ctx.globalAlpha =
+      alpha*.8;
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+
+      effect.x,
+
+      effect.y,
+
+      effect.radius*
+      .5*
+      (
+        1+
+        progress
+      ),
+
+      0,
+
+      Math.PI*2
+
+    );
+
+    ctx.stroke();
+
+
+    /*
+      中央フラッシュ
+    */
+
+    ctx.globalAlpha =
+      alpha*.3;
+
+    ctx.fillStyle="#fff";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+
+      effect.x,
+
+      effect.y,
+
+      effect.radius*.35,
+
+      0,
+
+      Math.PI*2
+
+    );
+
+    ctx.fill();
+
+
+    /*
+      パーティクル
+    */
+
+    ctx.globalAlpha=alpha;
+
+
+    const t =
+      age/1000;
+
+
+    for(
+      const particle
+      of effect.particles
+    ){
+
+      const px =
+        particle.x+
+        particle.vx*t;
+
+
+      const py =
+        particle.y+
+        particle.vy*t+
+        45*t*t;
+
+
+      ctx.fillStyle =
+        "#ffe600";
+
+
+      ctx.beginPath();
+
+      ctx.arc(
+
+        px,
+
+        py,
+
+        particle.size*
+        (
+          1-progress
+        ),
+
+        0,
+
+        Math.PI*2
+
+      );
+
+      ctx.fill();
+
+    }
+
+
+    ctx.restore();
+
+  }
+
+}
+
+
+/* =========================================================
+   KEY MAP
+========================================================= */
+
+const keyMap={
+
+  "1":0,
+
+  "2":1,
+
+  "3":2,
+
+  "4":3,
+
+  "5":4,
+
+  "6":5,
+
+  "7":6,
+
+  "8":7,
+
+  "9":8,
+
+  "0":9
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  function(e){
+
+    if(
+      !playing ||
+      countingDown ||
+      autoPlay ||
+      e.repeat
+    ){
+
+      return;
+
+    }
+
+
+    const lane =
+      keyMap[e.key];
+
+
+    if(
+      lane===undefined
+    ){
+
+      return;
+
+    }
+
+
+    pressLane(lane);
+
+  }
+);
+
+
+/* =========================================================
+   LANE PRESS
+========================================================= */
+
+function pressLane(lane){
+
+  /*
+    ★ キーを光らせる
+  */
+
+  flashLane(lane);
+
+
+  const elapsed =
+    (
+      performance.now()-
+      gameClockStart
+    ) / 1000;
+
+
+  let target=null;
+
+  let best=Infinity;
+
+
+  /*
+    一番近いノーツを探す
+  */
+
+  for(
+    const note
+    of notes
+  ){
+
+    if(
+      note.judged ||
+      note.lane!==lane
+    ){
+
+      continue;
+
+    }
+
+
+    const diff =
+      Math.abs(
+        elapsed-
+        note.time
+      );
+
+
+    if(
+      diff<best
+    ){
+
+      best=diff;
+
+      target=note;
+
+    }
+
+  }
+
+
+  if(!target)
+    return;
+
+
+  /*
+    判定
+  */
+
+  if(
+    best<=PERFECT_WINDOW
+  ){
+
+    judgeNote(
+      target,
+      "PERFECT"
+    );
+
+  }
+
+  else if(
+    best<=GREAT_WINDOW
+  ){
+
+    judgeNote(
+      target,
+      "GREAT"
+    );
+
+  }
+
+  else if(
+    best<=GOOD_WINDOW
+  ){
+
+    judgeNote(
+      target,
+      "GOOD"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   JUDGE
+========================================================= */
+
+function judgeNote(
+  note,
+  judgement
+){
+
+  if(
+    note.judged
+  ){
+
+    return;
+
+  }
+
+
+  /*
+    ★★★★★★★★★★★★★
+
+    押した瞬間に
+    ノーツを消す。
+
+    ★★★★★★★★★★★★★
+  */
+
+  note.judged=true;
+
+
+  /*
+    PERFECT演出
+  */
+
+  if(
+    judgement==="PERFECT"
+  ){
+
+    createPerfectEffect(
+      note
+    );
+
+  }
+
+
+  switch(
+    judgement
+  ){
+
+    case "PERFECT":
+
+      score+=1000;
+
+      combo++;
+
+      perfectCount++;
+
+      perfectKeyFlash(
+        note.lane
+      );
+
+      break;
+
+
+    case "GREAT":
+
+      score+=700;
+
+      combo++;
+
+      greatCount++;
+
+      break;
+
+
+    case "GOOD":
+
+      score+=300;
+
+      combo++;
+
+      goodCount++;
+
+      break;
+
+
+    case "MISS":
+
+      combo=0;
+
+      missCount++;
+
+      break;
+
+  }
+
+
+  maxCombo =
+    Math.max(
+      maxCombo,
+      combo
+    );
+
+
+  /*
+    判定表示
+  */
+
+  showJudgement(
+    judgement
+  );
+
+
+  /*
+    コンボ表示
+  */
+
+  if(
+    combo>=2
+  ){
+
+    showCombo(
+      combo
+    );
+
+  }
+
+
+  updateScore();
+
+}
+
+
+/* =========================================================
+   JUDGEMENT DISPLAY
+========================================================= */
+
+function showJudgement(
+  text
+){
+
+  const element =
+    document.getElementById(
+      "judgement"
+    );
+
+
+  element.textContent =
+    text;
+
+
+  if(
+    text==="PERFECT"
+  ){
+
+    element.style.color =
+      "#ffe600";
+
+  }
+
+  else if(
+    text==="GREAT"
+  ){
+
+    element.style.color =
+      "#40bfff";
+
+  }
+
+  else if(
+    text==="GOOD"
+  ){
+
+    element.style.color =
+      "#55ff77";
+
+  }
+
+  else{
+
+    element.style.color =
+      "#ff4050";
+
+  }
+
+
+  element.classList.remove(
+    "show"
+  );
+
+
+  void element.offsetWidth;
+
+
+  element.classList.add(
+    "show"
+  );
+
+}
+
+
+/* =========================================================
+   COMBO DISPLAY
+========================================================= */
+
+function showCombo(
+  value
+){
+
+  const element =
+    document.getElementById(
+      "comboDisplay"
+    );
+
+
+  element.textContent =
+    `${value} COMBO`;
+
+
+  element.classList.remove(
+    "show"
+  );
+
+
+  void element.offsetWidth;
+
+
+  element.classList.add(
+    "show"
+  );
+
+}
+
+
+/* =========================================================
+   KEY FLASH
+========================================================= */
+
+function flashLane(
+  lane
+){
+
+  const buttons =
+    document.querySelectorAll(
+      ".laneButton"
+    );
+
+
+  const button =
+    buttons[lane];
+
+
+  if(!button)
+    return;
+
+
+  button.classList.add(
+    "active"
+  );
+
+
+  setTimeout(
+    ()=>{
+      button.classList.remove(
+        "active"
+      );
+    },
+    90
+  );
+
+}
+
+
+/* =========================================================
+   PERFECT KEY FLASH
+========================================================= */
+
+function perfectKeyFlash(
+  lane
+){
+
+  const buttons =
+    document.querySelectorAll(
+      ".laneButton"
+    );
+
+
+  const button =
+    buttons[lane];
+
+
+  if(!button)
+    return;
+
+
+  button.classList.remove(
+    "perfect"
+  );
+
+
+  void button.offsetWidth;
+
+
+  button.classList.add(
+    "perfect"
+  );
+
+
+  setTimeout(
+    ()=>{
+
+      button.classList.remove(
+        "perfect"
+      );
+
+    },
+    220
+  );
+
+}
+
+
+/* =========================================================
+   SCORE UPDATE
+========================================================= */
+
+function updateScore(){
+
+  document
+  .getElementById("score")
+  .textContent =
+    score.toLocaleString();
+
+
+  document
+  .getElementById("combo")
+  .textContent =
+    combo;
+
+
+  document
+  .getElementById("maxCombo")
+  .textContent =
+    maxCombo;
+
+
+  document
+  .getElementById("perfect")
+  .textContent =
+    perfectCount;
+
+
+  document
+  .getElementById("great")
+  .textContent =
+    greatCount;
+
+
+  document
+  .getElementById("good")
+  .textContent =
+    goodCount;
+
+
+  document
+  .getElementById("miss")
+  .textContent =
+    missCount;
+
+}
+
+
+/* =========================================================
+   クリック操作
+========================================================= */
+
+document
+.querySelectorAll(".laneButton")
+.forEach(
+  button=>{
+
+    button.addEventListener(
+      "pointerdown",
+      function(e){
+
+        e.preventDefault();
+
+
+        if(
+          !playing ||
+          countingDown ||
+          autoPlay
+        ){
+
+          return;
+
+        }
+
+
+        pressLane(
+          Number(
+            this.dataset.lane
+          )
+        );
+
+      }
+    );
+
+  }
+);
+
+
+/* =========================================================
+   FULL COMBO演出
+========================================================= */
+
+function showFullComboEffect(
+  perfect
+){
+
+  const effect =
+    document.getElementById(
+      "fullComboEffect"
+    );
+
+
+  const title =
+    effect.querySelector(
+      ".fcTitle"
+    );
+
+
+  const sub =
+    effect.querySelector(
+      ".fcSub"
+    );
+
+
+  /*
+    PERFECT FULL COMBO
+  */
+
+  if(perfect){
+
+    title.textContent =
+      "PERFECT FULL COMBO";
+
+    sub.textContent =
+      "ALL PERFECT";
+
+  }
+
+  /*
+    通常FULL COMBO
+  */
+
+  else{
+
+    title.textContent =
+      "FULL COMBO";
+
+    sub.textContent =
+      "NO MISS";
+
+  }
+
+
+  /*
+    アニメーションを再スタート
+  */
+
+  effect.classList.remove(
+    "show"
+  );
+
+
+  void effect.offsetWidth;
+
+
+  effect.classList.add(
+    "show"
+  );
+
+
+  /*
+    ★ 下の10キーを
+      順番に光らせる
+  */
+
+  const buttons =
+    document.querySelectorAll(
+      ".laneButton"
+    );
+
+
+  buttons.forEach(
+    (button,index)=>{
+
+      setTimeout(
+        ()=>{
+
+          button.classList.add(
+            "perfect"
+          );
+
+
+          setTimeout(
+            ()=>{
+
+              button.classList.remove(
+                "perfect"
+              );
+
+            },
+            350
+          );
+
+        },
+        index*45
+      );
+
+    }
+  );
+
+
+  /*
+    演出終了
+  */
+
+  setTimeout(
+    ()=>{
+
+      effect.classList.remove(
+        "show"
+      );
+
+    },
+    3200
+  );
+
+}
+
+
+/* =========================================================
+   FINISH GAME
+========================================================= */
+
+function finishGame(){
+
+  /*
+    ゲーム停止
+  */
+
+  playing=false;
+
+  countingDown=false;
+
+
+  stopMusic();
+
+
+  /*
+    スタートボタン復活
+  */
+
+  document
+  .getElementById(
+    "startBtn"
+  )
+  .disabled=false;
+
+
+  /*
+    総判定数
+  */
+
+  const total =
+    perfectCount+
+    greatCount+
+    goodCount+
+    missCount;
+
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  /*
+    ======================================
+    PERFECT FULL COMBO
+    ======================================
+  */
+
+  if(
+    total>0 &&
+    missCount===0 &&
+    perfectCount===total
+  ){
+
+    result.textContent =
+      "🏆 PERFECT FULL COMBO！";
+
+
+    showFullComboEffect(
+      true
+    );
+
+  }
+
+
+  /*
+    ======================================
+    FULL COMBO
+    ======================================
+  */
+
+  else if(
+    total>0 &&
+    missCount===0
+  ){
+
+    result.textContent =
+      "🎉 FULL COMBO！";
+
+
+    showFullComboEffect(
+      false
+    );
+
+  }
+
+
+  /*
+    ======================================
+    通常クリア
+    ======================================
+  */
+
+  else{
+
+    result.textContent =
+      `CLEAR　最大 ${maxCombo} COMBO`;
+
+  }
+
+}
+
+
+/* =========================================================
+   初期描画
+========================================================= */
+
+drawBackground();
+
+drawHitLine();
+
+updateScore();
+
+</script>
+
+</body>
+</html>
